@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "GFCorp Domeny",
+  icons: "/favicon.ico",
 };
 
 export default function RootLayout({

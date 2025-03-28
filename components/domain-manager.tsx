@@ -63,11 +63,23 @@ export function DomainManager() {
     user?.group?.permissions?.includes("domains") || false;
 
   const uniqueCompanies = useMemo(() => {
-    return Array.from(new Set(domains.map((domain) => domain.company)));
+    return Array.from(
+      new Set(
+        domains
+          .map((domain) => domain.company)
+          .filter((company) => company && company.trim() !== "")
+      )
+    );
   }, [domains]);
 
   const uniqueRegistrars = useMemo(() => {
-    return Array.from(new Set(domains.map((domain) => domain.registrar)));
+    return Array.from(
+      new Set(
+        domains
+          .map((domain) => domain.registrar)
+          .filter((registrar) => registrar && registrar.trim() !== "")
+      )
+    );
   }, [domains]);
 
   const fetchDomains = async () => {
@@ -91,7 +103,7 @@ export function DomainManager() {
           id: domain._id || String(Math.random()),
           name: domain.domain || "",
           expireDate: renewDate,
-          company: domain.company || "",
+          company: domain.company || "Nieznana",
           registrar: domain.registrar || "Nieznany",
         };
       });

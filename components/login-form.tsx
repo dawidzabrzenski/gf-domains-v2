@@ -88,9 +88,6 @@ export function LoginForm() {
       <form onSubmit={handleSubmit}>
         <CardHeader className="space-y-1">
           <h2 className="text-2xl font-semibold">Zaloguj się</h2>
-          <p className="text-sm text-muted-foreground">
-            Wpisz dane aby się zalogować
-          </p>
         </CardHeader>
         <CardContent className="space-y-4">
           {loginError && (

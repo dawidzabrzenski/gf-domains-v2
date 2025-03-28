@@ -73,25 +73,21 @@ export function DomainForm({
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Domain name is required";
+      newErrors.name = "Nazwa domeny jest wymagana";
     } else if (
-      !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/.test(
+      !/^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9](\.[a-zA-Z0-9-]{1,61}[a-zA-Z0-9])*\.[a-zA-Z]{2,}$/.test(
         formData.name
       )
     ) {
-      newErrors.name = "Please enter a valid domain name";
+      newErrors.name = "Wprowadź poprawną domenę";
     }
 
     if (!formData.expireDate) {
-      newErrors.expireDate = "Expiration date is required";
+      newErrors.expireDate = "Data wygaśnięcia jest wymagana";
     }
 
     if (!formData.company) {
-      newErrors.company = "Company is required";
-    }
-
-    if (!formData.registrar.trim()) {
-      newErrors.registrar = "Registrar is required";
+      newErrors.company = "Spółka jest wymagana";
     }
 
     setErrors(newErrors);
@@ -158,7 +154,6 @@ export function DomainForm({
               onChange={handleChange}
               className={errors.expireDate ? "border-destructive" : ""}
               disabled={isSubmitting}
-              required
             />
             {errors.expireDate && (
               <p className="text-sm text-destructive">{errors.expireDate}</p>
@@ -204,7 +199,6 @@ export function DomainForm({
               placeholder="np. Cyberfolks"
               className={errors.registrar ? "border-destructive" : ""}
               disabled={isSubmitting}
-              required
             />
             {errors.registrar && (
               <p className="text-sm text-destructive">{errors.registrar}</p>
