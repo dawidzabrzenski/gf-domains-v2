@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { authService } from "@/services/auth-service";
 import {
   Table,
   TableBody,
@@ -51,6 +52,10 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const user = authService.getUser();
+  const hasDomainPermission =
+    user?.group?.permissions?.includes("domains") || false;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -219,7 +224,7 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                         </TableCell>
                         <TableCell>{formatDate(domain.expireDate)}</TableCell>
                         <TableCell>{domain.company}</TableCell>
-                        <TableCell>{domain.registrar || "Unknown"}</TableCell>
+                        <TableCell>{domain.registrar || "Nieznany"}</TableCell>
                         <TableCell>
                           {status === "expired" ? (
                             <Badge
@@ -227,7 +232,7 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                               className="flex items-center gap-1"
                             >
                               <AlertTriangle className="h-3 w-3" />
-                              Expired
+                              Wygasła
                             </Badge>
                           ) : status === "expiring-soon" ? (
                             <Badge
@@ -235,14 +240,14 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                               className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 flex items-center gap-1"
                             >
                               <Clock className="h-3 w-3" />
-                              {daysUntilExpiry} days
+                              {daysUntilExpiry} dni
                             </Badge>
                           ) : (
                             <Badge
                               variant="outline"
                               className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                             >
-                              Active
+                              Aktywna
                             </Badge>
                           )}
                         </TableCell>
@@ -251,20 +256,24 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
                                 <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Open menu</span>
+                                <span className="sr-only">Otwórz menu</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onEdit(domain)}>
+                              <DropdownMenuItem
+                                disabled={!hasDomainPermission}
+                                onClick={() => onEdit(domain)}
+                              >
                                 <Edit className="mr-2 h-4 w-4" />
-                                Edit
+                                Edytuj
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                disabled={!hasDomainPermission}
                                 className="text-destructive focus:text-destructive"
                                 onClick={() => confirmDelete(domain.id)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Usuń
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

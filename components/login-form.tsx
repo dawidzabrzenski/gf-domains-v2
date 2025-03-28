@@ -31,7 +31,6 @@ export function LoginForm() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Clear error when field is edited
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -40,7 +39,6 @@ export function LoginForm() {
       });
     }
 
-    // Clear login error when form is edited
     if (loginError) {
       setLoginError(null);
     }
@@ -50,11 +48,11 @@ export function LoginForm() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
+      newErrors.email = "Email jest wymagany";
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "Hasło jest wymagane";
     }
 
     setErrors(newErrors);
@@ -89,9 +87,9 @@ export function LoginForm() {
     <Card className="w-full">
       <form onSubmit={handleSubmit}>
         <CardHeader className="space-y-1">
-          <h2 className="text-2xl font-semibold">Sign in</h2>
+          <h2 className="text-2xl font-semibold">Zaloguj się</h2>
           <p className="text-sm text-muted-foreground">
-            Enter your credentials to access your account
+            Wpisz dane aby się zalogować
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -122,14 +120,7 @@ export function LoginForm() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Button
-                variant="link"
-                className="p-0 h-auto text-xs"
-                type="button"
-              >
-                Forgot password?
-              </Button>
+              <Label htmlFor="password">Hasła</Label>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -177,10 +168,10 @@ export function LoginForm() {
                     ></path>
                   </svg>
                 </span>
-                Signing in...
+                Logowanie...
               </>
             ) : (
-              "Sign in"
+              "Zaloguj się"
             )}
           </Button>
         </CardFooter>

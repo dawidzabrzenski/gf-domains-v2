@@ -103,6 +103,7 @@ export function DomainForm({
 
     if (validateForm()) {
       setIsSubmitting(true);
+
       try {
         await onSubmit(formData);
       } catch (error) {
@@ -118,17 +119,17 @@ export function DomainForm({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Edit Domain" : "Add New Domain"}
+            {initialData ? "Edytuj domenę" : "Dodaj nową domenę"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <p className="text-sm text-muted-foreground">
-            Fields marked with <span className="text-destructive">*</span> are
-            required
+            Pola zaznaczone przez <span className="text-destructive">*</span> są
+            wymagane
           </p>
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center">
-              Domain Name <span className="text-destructive ml-1">*</span>
+              Domena <span className="text-destructive ml-1">*</span>
             </Label>
             <Input
               id="name"
@@ -147,7 +148,7 @@ export function DomainForm({
 
           <div className="space-y-2">
             <Label htmlFor="expireDate" className="flex items-center">
-              Expiration Date <span className="text-destructive ml-1">*</span>
+              Data wygaśnięcia <span className="text-destructive ml-1">*</span>
             </Label>
             <Input
               id="expireDate"
@@ -166,7 +167,7 @@ export function DomainForm({
 
           <div className="space-y-2">
             <Label htmlFor="company" className="flex items-center">
-              Company <span className="text-destructive ml-1">*</span>
+              Spółka <span className="text-destructive ml-1">*</span>
             </Label>
             <Select
               value={formData.company}
@@ -180,8 +181,10 @@ export function DomainForm({
                 <SelectValue placeholder="Select company" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gfc">GFC SP. Z.O.O</SelectItem>
-                <SelectItem value="logbox">Logbox SP. Z.O.O.</SelectItem>
+                <SelectItem value="GFC SP. Z.O.O">GFC SP. Z.O.O</SelectItem>
+                <SelectItem value="Logbox SP. Z.O.O.">
+                  Logbox SP. Z.O.O.
+                </SelectItem>
               </SelectContent>
             </Select>
             {errors.company && (
@@ -191,7 +194,7 @@ export function DomainForm({
 
           <div className="space-y-2">
             <Label htmlFor="registrar" className="flex items-center">
-              Registrar <span className="text-destructive ml-1">*</span>
+              Rejestrator <span className="text-destructive ml-1">*</span>
             </Label>
             <Input
               id="registrar"
@@ -215,7 +218,7 @@ export function DomainForm({
               onClick={onCancel}
               disabled={isSubmitting}
             >
-              Cancel
+              Anuluj
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
@@ -242,10 +245,10 @@ export function DomainForm({
                       ></path>
                     </svg>
                   </span>
-                  {initialData ? "Updating..." : "Adding..."}
+                  {initialData ? "Edytowanie..." : "Dodawanie..."}
                 </>
               ) : (
-                <>{initialData ? "Update" : "Add"} Domain</>
+                <>{initialData ? "Edytuj" : "Dodaj"} Domenę</>
               )}
             </Button>
           </DialogFooter>

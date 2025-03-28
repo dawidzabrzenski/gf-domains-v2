@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import axios from "axios";
 import { DomainTable } from "./domain-table";
 import { DomainForm } from "./domain-form";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   X,
   RefreshCcw,
   LogOut,
+  Lock,
 } from "lucide-react";
 import type { Domain } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +59,8 @@ export function DomainManager() {
 
   const { toast } = useToast();
   const user = authService.getUser();
+  const hasDomainPermission =
+    user?.group?.permissions?.includes("domains") || false;
 
   const uniqueCompanies = useMemo(() => {
     return Array.from(new Set(domains.map((domain) => domain.company)));
@@ -71,42 +75,40 @@ export function DomainManager() {
     setError(null);
 
     try {
-      const options = authService.addAuthHeader({
-        method: "GET",
+      const response = await axios.get(API_URL, {
+        headers: authService.getAuthHeader(),
       });
 
-      const response = await fetch(API_URL, options);
+      console.log("Raw backend response:", response.data);
 
-      if (response.status === 401) {
-        authService.logout();
-        return;
-      }
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
+      const normalizedData = data.map((domain: any) => {
+        const renewDate = domain.renew
+          ? new Date(domain.renew).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0];
+        return {
+          id: domain._id || String(Math.random()),
+          name: domain.domain || "",
+          expireDate: renewDate,
+          company: domain.company || "",
+          registrar: domain.registrar || "Nieznany",
+        };
+      });
 
-      const data = await response.json();
-
-      const normalizedData = data.map((domain: any) => ({
-        id: domain.id || String(Math.random()),
-        name: domain.name || domain.domain || "",
-        expireDate: domain.renew || new Date().toISOString().split("T")[0],
-        company: domain.company || "",
-        registrar: domain.registrar || "Unknown",
-      }));
-
+      console.log("Normalized domains:", normalizedData);
       setDomains(normalizedData);
       setIsLoading(false);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        authService.logout();
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Wystąpił nieznany błąd");
       setIsLoading(false);
       toast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to fetch domains",
+        title: "Błąd",
+        description: "Nie udało się pobrać domen",
         variant: "destructive",
       });
     }
@@ -132,7 +134,6 @@ export function DomainManager() {
     } else if (diffDays <= 30) {
       return "expiring-soon";
     }
-
     return "active";
   };
 
@@ -180,37 +181,39 @@ export function DomainManager() {
 
   const handleAddDomain = async (domain: Omit<Domain, "id">) => {
     try {
-      const options = authService.addAuthHeader({
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(domain),
+      const apiData = {
+        domain: domain.name,
+        renew: domain.expireDate,
+        company: domain.company,
+        registrar: domain.registrar,
+      };
+
+      const response = await axios.post(API_URL, apiData, {
+        headers: authService.getAuthHeader(),
       });
 
-      const response = await fetch(API_URL, options);
+      const newDomain = {
+        id: response.data._id,
+        name: response.data.domain,
+        expireDate: response.data.renew,
+        company: response.data.company,
+        registrar: response.data.registrar,
+      };
 
-      if (response.status === 401) {
-        authService.logout();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-
-      const newDomain = await response.json();
       setDomains([...domains, newDomain]);
       setIsFormOpen(false);
       toast({
-        title: "Success",
-        description: "Domain added successfully",
+        title: "Sukces",
+        description: "Domena została dodana pomyślnie",
       });
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        authService.logout();
+        return;
+      }
       toast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to add domain",
+        title: "Błąd",
+        description: "Nie udało się dodać domeny",
         variant: "destructive",
       });
     }
@@ -218,40 +221,46 @@ export function DomainManager() {
 
   const handleUpdateDomain = async (updatedDomain: Domain) => {
     try {
-      const options = authService.addAuthHeader({
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedDomain),
-      });
+      const apiData = {
+        domain: updatedDomain.name,
+        renew: updatedDomain.expireDate,
+        company: updatedDomain.company,
+        registrar: updatedDomain.registrar,
+      };
 
-      const response = await fetch(`${API_URL}/${updatedDomain.id}`, options);
+      const response = await axios.put(
+        `${API_URL}/${updatedDomain.id}`,
+        apiData,
+        {
+          headers: authService.getAuthHeader(),
+        }
+      );
 
-      if (response.status === 401) {
-        authService.logout();
-        return;
-      }
+      const updated = {
+        id: response.data._id,
+        name: response.data.domain,
+        expireDate: response.data.renew,
+        company: response.data.company,
+        registrar: response.data.registrar,
+      };
 
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-
-      const updated = await response.json();
       setDomains(
         domains.map((domain) => (domain.id === updated.id ? updated : domain))
       );
       setEditingDomain(null);
       setIsFormOpen(false);
       toast({
-        title: "Success",
-        description: "Domain updated successfully",
+        title: "Sukces",
+        description: "Domena została zaktualizowana pomyślnie",
       });
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        authService.logout();
+        return;
+      }
       toast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to update domain",
+        title: "Błąd",
+        description: "Nie udało się zaktualizować domeny",
         variant: "destructive",
       });
     }
@@ -259,31 +268,23 @@ export function DomainManager() {
 
   const handleDeleteDomain = async (id: string) => {
     try {
-      const options = authService.addAuthHeader({
-        method: "DELETE",
+      await axios.delete(`${API_URL}/${id}`, {
+        headers: authService.getAuthHeader(),
       });
-
-      const response = await fetch(`${API_URL}/${id}`, options);
-
-      if (response.status === 401) {
-        authService.logout();
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
 
       setDomains(domains.filter((domain) => domain.id !== id));
       toast({
-        title: "Success",
-        description: "Domain deleted successfully",
+        title: "Sukces",
+        description: "Domena została usunięta pomyślnie",
       });
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        authService.logout();
+        return;
+      }
       toast({
-        title: "Error",
-        description:
-          err instanceof Error ? err.message : "Failed to delete domain",
+        title: "Błąd",
+        description: "Nie udało się usunąć domeny",
         variant: "destructive",
       });
     }
@@ -317,7 +318,7 @@ export function DomainManager() {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="text-lg">Loading domains...</p>
+        <p className="text-lg">Ładowanie domen...</p>
       </div>
     );
   }
@@ -326,12 +327,12 @@ export function DomainManager() {
     return (
       <Card className="p-6 flex flex-col items-center justify-center space-y-4">
         <h2 className="text-xl font-semibold text-destructive">
-          Error Loading Domains
+          Błąd podczas ładowania domen
         </h2>
         <p className="text-muted-foreground">{error}</p>
         <Button onClick={fetchDomains}>
           <RefreshCcw className="mr-2 h-4 w-4" />
-          Try Again
+          Spróbuj ponownie
         </Button>
       </Card>
     );
@@ -354,8 +355,10 @@ export function DomainManager() {
           <div className="flex gap-2">
             {user && (
               <div className="hidden sm:flex items-center mr-2 text-sm text-muted-foreground">
-                Logged in as:{" "}
-                <span className="font-medium ml-1">{user.username}</span>
+                Zalogowany jako:{" "}
+                <span className="font-medium ml-1">
+                  {user.firstName + " " + user.lastName}
+                </span>
               </div>
             )}
 
@@ -397,15 +400,15 @@ export function DomainManager() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder="Wybierz status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Wszystkie statusy</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="active">Aktywna</SelectItem>
                         <SelectItem value="expiring-soon">
-                          Expiring Soon
+                          Niedługo wygasa
                         </SelectItem>
-                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="expired">Wygasła</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -433,7 +436,7 @@ export function DomainManager() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Registrar</label>
+                    <label className="text-sm font-medium">Rejestrator</label>
                     <Select
                       value={filters.registrar}
                       onValueChange={(value) =>
@@ -441,7 +444,7 @@ export function DomainManager() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select registrar" />
+                        <SelectValue placeholder="Wybierz rejestratora" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">
@@ -459,14 +462,21 @@ export function DomainManager() {
               </PopoverContent>
             </Popover>
 
-            <Button onClick={() => setIsFormOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Domain
+            <Button
+              disabled={!hasDomainPermission}
+              onClick={() => setIsFormOpen(true)}
+            >
+              {hasDomainPermission ? (
+                <PlusCircle className="mr-2 h-4 w-4" />
+              ) : (
+                <Lock className="mr-2 h-4 w-4" />
+              )}
+              Dodaj Domenę
             </Button>
 
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
-              Logout
+              Wyloguj
             </Button>
           </div>
         </div>
@@ -476,8 +486,11 @@ export function DomainManager() {
             {filters.status !== "all" && (
               <Badge variant="secondary" className="flex items-center gap-1">
                 Status:{" "}
-                {filters.status.charAt(0).toUpperCase() +
-                  filters.status.slice(1).replace("-", " ")}
+                {filters.status === "active"
+                  ? "Aktywna"
+                  : filters.status === "expiring-soon"
+                  ? "Niedługo wygasa"
+                  : "Wygasła"}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -485,14 +498,14 @@ export function DomainManager() {
                   onClick={() => handleFilterChange("status", "all")}
                 >
                   <X className="h-3 w-3" />
-                  <span className="sr-only">Remove status filter</span>
+                  <span className="sr-only">Usuń filtr statusu</span>
                 </Button>
               </Badge>
             )}
 
             {filters.company !== "all" && (
               <Badge variant="secondary" className="flex items-center gap-1">
-                Company: {filters.company}
+                Spółka: {filters.company}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -500,14 +513,14 @@ export function DomainManager() {
                   onClick={() => handleFilterChange("company", "all")}
                 >
                   <X className="h-3 w-3" />
-                  <span className="sr-only">Remove company filter</span>
+                  <span className="sr-only">Usuń filtr spółki</span>
                 </Button>
               </Badge>
             )}
 
             {filters.registrar !== "all" && (
               <Badge variant="secondary" className="flex items-center gap-1">
-                Registrar: {filters.registrar}
+                Rejestrator: {filters.registrar}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -515,7 +528,7 @@ export function DomainManager() {
                   onClick={() => handleFilterChange("registrar", "all")}
                 >
                   <X className="h-3 w-3" />
-                  <span className="sr-only">Remove registrar filter</span>
+                  <span className="sr-only">Usuń filtr rejestratora</span>
                 </Button>
               </Badge>
             )}
