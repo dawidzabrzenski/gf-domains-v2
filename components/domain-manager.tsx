@@ -368,7 +368,7 @@ export function DomainManager() {
             {user && (
               <div className="hidden sm:flex items-center mr-2 text-sm text-muted-foreground">
                 Zalogowany jako:{" "}
-                <span className="font-medium ml-1">
+                <span className="font-bold ml-1">
                   {user.firstName + " " + user.lastName}
                 </span>
               </div>

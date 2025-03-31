@@ -227,17 +227,14 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                         <TableCell>{domain.registrar || "Nieznany"}</TableCell>
                         <TableCell>
                           {status === "expired" ? (
-                            <Badge
-                              variant="destructive"
-                              className="flex items-center gap-1"
-                            >
+                            <Badge variant="destructive" className="gap-1">
                               <AlertTriangle className="h-3 w-3" />
                               Wygasła
                             </Badge>
                           ) : status === "expiring-soon" ? (
                             <Badge
                               variant="outline"
-                              className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 flex items-center gap-1"
+                              className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 gap-1"
                             >
                               <Clock className="h-3 w-3" />
                               {daysUntilExpiry} dni
@@ -245,7 +242,7 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                           ) : (
                             <Badge
                               variant="outline"
-                              className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                              className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 "
                             >
                               Aktywna
                             </Badge>
