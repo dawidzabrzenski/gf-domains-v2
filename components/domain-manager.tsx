@@ -41,7 +41,7 @@ interface Filters {
   registrar: string;
 }
 
-const API_URL = "http://localhost:5000/api/domains";
+const API_URL = process.env.SERVER_URL || "http://localhost:8001";
 
 export function DomainManager() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -87,11 +87,9 @@ export function DomainManager() {
     setError(null);
 
     try {
-      const response = await axios.get(API_URL, {
+      const response = await axios.get(`${API_URL}/api/domains`, {
         headers: authService.getAuthHeader(),
       });
-
-      console.log("Raw backend response:", response.data);
 
       const data = response.data;
 
@@ -108,7 +106,6 @@ export function DomainManager() {
         };
       });
 
-      console.log("Normalized domains:", normalizedData);
       setDomains(normalizedData);
       setIsLoading(false);
     } catch (err) {

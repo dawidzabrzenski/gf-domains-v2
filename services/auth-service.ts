@@ -16,11 +16,12 @@ export interface AuthResponse {
 
 const TOKEN_KEY = "domain_manager_token";
 const USER_KEY = "domain_manager_user";
+const API_URL = process.env.SERVER_URL || "http://localhost:8001";
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<boolean> {
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(credentials),
