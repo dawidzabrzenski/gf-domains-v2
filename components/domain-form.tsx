@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +25,17 @@ interface DomainFormProps {
   onSubmit: (domain: Domain | Omit<Domain, "id">) => void | Promise<void>;
   onCancel: () => void;
   initialData?: Domain | null;
+  mode?: "add" | "request";
 }
 
 export function DomainForm({
   onSubmit,
   onCancel,
   initialData,
+  mode = "add",
 }: DomainFormProps) {
+  const isRequesting = mode === "request";
+
   const [formData, setFormData] = useState<Omit<Domain, "id"> | Domain>({
     name: initialData?.name || "",
     expireDate: initialData?.expireDate || "",
@@ -82,7 +85,7 @@ export function DomainForm({
       newErrors.name = "Wprowadź poprawną domenę";
     }
 
-    if (!formData.expireDate) {
+    if (!formData.expireDate && !isRequesting) {
       newErrors.expireDate = "Data wygaśnięcia jest wymagana";
     }
 
@@ -99,7 +102,6 @@ export function DomainForm({
 
     if (validateForm()) {
       setIsSubmitting(true);
-
       try {
         await onSubmit(formData);
       } catch (error) {
@@ -115,7 +117,11 @@ export function DomainForm({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Edytuj domenę" : "Dodaj nową domenę"}
+            {initialData
+              ? "Edytuj domenę"
+              : isRequesting
+              ? "Zleć zakupy domeny"
+              : "Dodaj nową domenę"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
@@ -123,6 +129,7 @@ export function DomainForm({
             Pola zaznaczone przez <span className="text-destructive">*</span> są
             wymagane
           </p>
+
           <div className="space-y-2">
             <Label htmlFor="name" className="flex items-center">
               Domena <span className="text-destructive ml-1">*</span>
@@ -153,7 +160,7 @@ export function DomainForm({
               value={formData.expireDate}
               onChange={handleChange}
               className={errors.expireDate ? "border-destructive" : ""}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRequesting}
             />
             {errors.expireDate && (
               <p className="text-sm text-destructive">{errors.expireDate}</p>
@@ -173,7 +180,7 @@ export function DomainForm({
                 id="company"
                 className={errors.company ? "border-destructive" : ""}
               >
-                <SelectValue placeholder="Select company" />
+                <SelectValue placeholder="Wybierz spółkę" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="GFC SP. Z.O.O">GFC SP. Z.O.O</SelectItem>
@@ -217,32 +224,18 @@ export function DomainForm({
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
-                  <span className="mr-2">
-                    <svg
-                      className="animate-spin h-4 w-4 text-current"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                  </span>
-                  {initialData ? "Edytowanie..." : "Dodawanie..."}
+                  <span className="mr-2 animate-spin h-4 w-4">⏳</span>
+                  {initialData
+                    ? "Edytowanie..."
+                    : isRequesting
+                    ? "Zlecanie..."
+                    : "Dodawanie..."}
                 </>
               ) : (
-                <>{initialData ? "Edytuj" : "Dodaj"} Domenę</>
+                <>
+                  {initialData ? "Edytuj" : isRequesting ? "Zleć" : "Dodaj"}{" "}
+                  Domenę
+                </>
               )}
             </Button>
           </DialogFooter>

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/popover";
 import {
   PlusCircle,
+  CircleDollarSign,
   Search,
   Filter,
   X,
@@ -33,7 +34,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { authService } from "@/services/auth-service";
 
-type StatusFilter = "all" | "active" | "expiring-soon" | "expired";
+type StatusFilter =
+  | "all"
+  | "active"
+  | "expiring-soon"
+  | "expired"
+  | "requested";
 
 interface Filters {
   status: StatusFilter;
@@ -41,16 +47,18 @@ interface Filters {
   registrar: string;
 }
 
-const API_URL = process.env.SERVER_URL || "http://localhost:8001";
+const API_URL = process.env.SERVER_URL || "http://gfcsrvdr2:8001";
 
 export function DomainManager() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
+  const [requestingDomain, setRequestingDomain] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "request">("add");
   const [filters, setFilters] = useState<Filters>({
     status: "all",
     company: "all",
@@ -96,7 +104,8 @@ export function DomainManager() {
       const normalizedData = data.map((domain: any) => {
         const renewDate = domain.renew
           ? new Date(domain.renew).toISOString().split("T")[0]
-          : new Date().toISOString().split("T")[0];
+          : "";
+
         return {
           id: domain._id || String(Math.random()),
           name: domain.domain || "",
@@ -129,7 +138,9 @@ export function DomainManager() {
 
   const getDomainStatus = (
     expireDate: string
-  ): "active" | "expiring-soon" | "expired" => {
+  ): "active" | "expiring-soon" | "expired" | "requested" => {
+    if (!expireDate) return "requested";
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expiryDate = new Date(expireDate);
@@ -190,14 +201,17 @@ export function DomainManager() {
 
   const handleAddDomain = async (domain: Omit<Domain, "id">) => {
     try {
+      const user = authService.getUser();
+
       const apiData = {
         domain: domain.name,
         renew: domain.expireDate,
         company: domain.company,
         registrar: domain.registrar,
+        requestedBy: user?.email,
       };
 
-      const response = await axios.post(API_URL, apiData, {
+      const response = await axios.post(`${API_URL}/api/domains/`, apiData, {
         headers: authService.getAuthHeader(),
       });
 
@@ -238,7 +252,7 @@ export function DomainManager() {
       };
 
       const response = await axios.put(
-        `${API_URL}/${updatedDomain.id}`,
+        `${API_URL}/api/domains/${updatedDomain.id}`,
         apiData,
         {
           headers: authService.getAuthHeader(),
@@ -277,7 +291,7 @@ export function DomainManager() {
 
   const handleDeleteDomain = async (id: string) => {
     try {
-      await axios.delete(`${API_URL}/${id}`, {
+      await axios.delete(`${API_URL}/api/domains/${id}`, {
         headers: authService.getAuthHeader(),
       });
 
@@ -414,6 +428,7 @@ export function DomainManager() {
                       <SelectContent>
                         <SelectItem value="all">Wszystkie statusy</SelectItem>
                         <SelectItem value="active">Aktywna</SelectItem>
+                        <SelectItem value="requested">Zlecenie</SelectItem>
                         <SelectItem value="expiring-soon">
                           Niedługo wygasa
                         </SelectItem>
@@ -472,8 +487,23 @@ export function DomainManager() {
             </Popover>
 
             <Button
+              onClick={() => {
+                setEditingDomain(null);
+                setFormMode("request");
+                setIsFormOpen(true);
+              }}
+            >
+              <CircleDollarSign className="mr-2 h-4 w-4" />
+              Zleć zakupy domeny
+            </Button>
+
+            <Button
               disabled={!hasDomainPermission}
-              onClick={() => setIsFormOpen(true)}
+              onClick={() => {
+                setEditingDomain(null);
+                setFormMode("add");
+                setIsFormOpen(true);
+              }}
             >
               {hasDomainPermission ? (
                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -557,8 +587,10 @@ export function DomainManager() {
           onCancel={() => {
             setIsFormOpen(false);
             setEditingDomain(null);
+            setFormMode("add");
           }}
           initialData={editingDomain}
+          mode={formMode}
         />
       )}
     </div>

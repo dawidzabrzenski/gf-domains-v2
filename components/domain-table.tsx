@@ -25,6 +25,7 @@ import {
   ArrowUpDown,
   AlertTriangle,
   Clock,
+  CircleDollarSign,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -49,7 +50,7 @@ type SortField = "name" | "expireDate" | "company" | "registrar" | "status";
 type SortDirection = "asc" | "desc";
 
 export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
-  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortField, setSortField] = useState<SortField>("expireDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -79,6 +80,14 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
   };
 
   const getExpiryStatus = (dateString: string) => {
+    if (!dateString) {
+      return {
+        status: "requested",
+        className: "bg-blue-100 dark:bg-blue-900/30",
+        sortValue: 0,
+      };
+    }
+
     const daysUntilExpiry = getDaysUntilExpiry(dateString);
 
     if (daysUntilExpiry < 0) {
@@ -95,7 +104,11 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
       };
     }
 
-    return { status: "active", className: "", sortValue: 1 };
+    return {
+      status: "active",
+      className: "",
+      sortValue: 1,
+    };
   };
 
   const sortedDomains = [...domains].sort((a, b) => {
@@ -131,6 +144,7 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
     return new Date(dateString).toLocaleDateString();
   };
 
@@ -239,10 +253,18 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                               <Clock className="h-3 w-3" />
                               {daysUntilExpiry} dni
                             </Badge>
+                          ) : status === "requested" ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-100 gap-1"
+                            >
+                              <CircleDollarSign className="h-3 w-3" />
+                              Zlecenie
+                            </Badge>
                           ) : (
                             <Badge
                               variant="outline"
-                              className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100 "
+                              className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                             >
                               Aktywna
                             </Badge>
@@ -291,19 +313,19 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Czy na pewno chcesz to zrobić?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              domain from your database.
+              Tej operacji nie można cofnąć. Domena zostanie trwale usunięta z
+              bazy danych.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Anuluj</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground"
             >
-              Delete
+              Usuń
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
