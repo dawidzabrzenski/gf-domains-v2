@@ -54,7 +54,6 @@ export function DomainManager() {
   const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
-  const [requestingDomain, setRequestingDomain] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -225,6 +224,7 @@ export function DomainManager() {
 
       setDomains([...domains, newDomain]);
       setIsFormOpen(false);
+      setFormMode("add"); // Reset mode po sukcesie
       toast({
         title: "Sukces",
         description: "Domena została dodana pomyślnie",
@@ -272,6 +272,7 @@ export function DomainManager() {
       );
       setEditingDomain(null);
       setIsFormOpen(false);
+      setFormMode("add"); // Reset mode po sukcesie
       toast({
         title: "Sukces",
         description: "Domena została zaktualizowana pomyślnie",
@@ -315,6 +316,7 @@ export function DomainManager() {
 
   const handleEditDomain = (domain: Domain) => {
     setEditingDomain(domain);
+    setFormMode("add"); // Ustawiamy na "add", bo edycja nie wymaga "request"
     setIsFormOpen(true);
   };
 
@@ -331,6 +333,10 @@ export function DomainManager() {
       company: "all",
       registrar: "all",
     });
+  };
+
+  const handleModeReset = () => {
+    setFormMode("add"); // Funkcja resetująca mode
   };
 
   const handleLogout = () => {
@@ -529,7 +535,9 @@ export function DomainManager() {
                   ? "Aktywna"
                   : filters.status === "expiring-soon"
                   ? "Niedługo wygasa"
-                  : "Wygasła"}
+                  : filters.status === "expired"
+                  ? "Wygasła"
+                  : "Zlecenie"}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -578,6 +586,7 @@ export function DomainManager() {
       <DomainTable
         domains={filteredDomains}
         onEdit={handleEditDomain}
+        onUpdate={handleUpdateDomain}
         onDelete={handleDeleteDomain}
       />
 
@@ -591,6 +600,7 @@ export function DomainManager() {
           }}
           initialData={editingDomain}
           mode={formMode}
+          onModeReset={handleModeReset} // Przekazanie funkcji resetującej
         />
       )}
     </div>

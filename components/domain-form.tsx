@@ -26,6 +26,7 @@ interface DomainFormProps {
   onCancel: () => void;
   initialData?: Domain | null;
   mode?: "add" | "request";
+  onModeReset?: () => void; // Nowa funkcja do resetowania mode
 }
 
 export function DomainForm({
@@ -33,6 +34,7 @@ export function DomainForm({
   onCancel,
   initialData,
   mode = "add",
+  onModeReset, // Nowy prop
 }: DomainFormProps) {
   const isRequesting = mode === "request";
 
@@ -50,7 +52,6 @@ export function DomainForm({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -62,7 +63,6 @@ export function DomainForm({
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -104,6 +104,7 @@ export function DomainForm({
       setIsSubmitting(true);
       try {
         await onSubmit(formData);
+        if (onModeReset) onModeReset(); // Reset mode po sukcesie
       } catch (error) {
         console.error("Error submitting form:", error);
       } finally {
@@ -112,8 +113,13 @@ export function DomainForm({
     }
   };
 
+  const handleCancel = () => {
+    onCancel();
+    if (onModeReset) onModeReset(); // Reset mode po anulowaniu
+  };
+
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onCancel()}>
+    <Dialog open={true} onOpenChange={(open) => !open && handleCancel()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
@@ -151,7 +157,10 @@ export function DomainForm({
 
           <div className="space-y-2">
             <Label htmlFor="expireDate" className="flex items-center">
-              Data wygaśnięcia <span className="text-destructive ml-1">*</span>
+              Data wygaśnięcia{" "}
+              {!isRequesting && (
+                <span className="text-destructive ml-1">*</span>
+              )}
             </Label>
             <Input
               id="expireDate"
@@ -216,7 +225,7 @@ export function DomainForm({
             <Button
               type="button"
               variant="outline"
-              onClick={onCancel}
+              onClick={handleCancel}
               disabled={isSubmitting}
             >
               Anuluj

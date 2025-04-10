@@ -43,16 +43,24 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 interface DomainTableProps {
   domains: Domain[];
   onEdit: (domain: Domain) => void;
+  onUpdate: (domain: Domain, extendYear: number) => void;
   onDelete: (id: string) => void;
 }
 
 type SortField = "name" | "expireDate" | "company" | "registrar" | "status";
 type SortDirection = "asc" | "desc";
 
-export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
+export function DomainTable({
+  domains,
+  onEdit,
+  onUpdate,
+  onDelete,
+}: DomainTableProps) {
   const [sortField, setSortField] = useState<SortField>("expireDate");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [extendYear, setExtendYear] = useState(1);
 
   const user = authService.getUser();
   const hasDomainPermission =
@@ -285,6 +293,54 @@ export function DomainTable({ domains, onEdit, onDelete }: DomainTableProps) {
                               >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edytuj
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={
+                                  !hasDomainPermission || !domain.expireDate
+                                }
+                                onClick={() => onUpdate(domain, extendYear)}
+                                className="flex items-center justify-between w-full"
+                              >
+                                <div className="flex items-center">
+                                  <Edit className="mr-2 h-4 w-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium">
+                                    Przedłuż o
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center bg-muted rounded-full px-1 py-0.5 border border-border">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExtendYear((prev) =>
+                                          Math.max(1, prev - 1)
+                                        );
+                                      }}
+                                      className="h-6 w-6 flex items-center justify-center rounded-full bg-background hover:bg-accent transition-colors text-foreground"
+                                    >
+                                      <span className="text-sm font-semibold">
+                                        -
+                                      </span>
+                                    </button>
+                                    <span className="min-w-[2rem] text-center text-sm font-semibold text-foreground">
+                                      {extendYear}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExtendYear((prev) => prev + 1);
+                                      }}
+                                      className="h-6 w-6 flex items-center justify-center rounded-full bg-background hover:bg-accent transition-colors text-foreground"
+                                    >
+                                      <span className="text-sm font-semibold">
+                                        +
+                                      </span>
+                                    </button>
+                                  </div>
+                                  <span className="text-sm text-muted-foreground">
+                                    {extendYear > 1 ? "lata" : "rok"}
+                                  </span>
+                                </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={!hasDomainPermission}
