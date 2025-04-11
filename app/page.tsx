@@ -1,5 +1,5 @@
-import { DomainManager } from "@/components/domain-manager";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { DomainManager } from "@/components/domainManager";
+import { ThemeToggle } from "@/components/themeToggle";
 
 export default function Home() {
   return (

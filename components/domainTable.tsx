@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { authService } from "@/services/auth-service";
 import {
   Table,
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Edit,
+  RefreshCcw,
   MoreHorizontal,
   Trash2,
   ArrowUpDown,
@@ -61,6 +62,16 @@ export function DomainTable({
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [extendYear, setExtendYear] = useState(1);
+
+  const handleIncrease = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExtendYear((prev) => Math.min(10, prev + 1));
+  }, []);
+
+  const handleDecrease = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExtendYear((prev) => Math.max(1, prev - 1));
+  }, []);
 
   const user = authService.getUser();
   const hasDomainPermission =
@@ -119,26 +130,28 @@ export function DomainTable({
     };
   };
 
-  const sortedDomains = [...domains].sort((a, b) => {
-    if (sortField === "status") {
-      const aStatus = getExpiryStatus(a.expireDate).sortValue;
-      const bStatus = getExpiryStatus(b.expireDate).sortValue;
+  const sortedDomains = useMemo(() => {
+    return [...domains].sort((a, b) => {
+      if (sortField === "status") {
+        const aStatus = getExpiryStatus(a.expireDate).sortValue;
+        const bStatus = getExpiryStatus(b.expireDate).sortValue;
 
-      return sortDirection === "asc" ? aStatus - bStatus : bStatus - aStatus;
-    } else {
-      const aValue = a[sortField] || "";
-      const bValue = b[sortField] || "";
-
-      const aString = String(aValue);
-      const bString = String(bValue);
-
-      if (sortDirection === "asc") {
-        return aString.localeCompare(bString);
+        return sortDirection === "asc" ? aStatus - bStatus : bStatus - aStatus;
       } else {
-        return bString.localeCompare(aString);
+        const aValue = a[sortField] || "";
+        const bValue = b[sortField] || "";
+
+        const aString = String(aValue);
+        const bString = String(bValue);
+
+        if (sortDirection === "asc") {
+          return aString.localeCompare(bString);
+        } else {
+          return bString.localeCompare(aString);
+        }
       }
-    }
-  });
+    });
+  }, [domains, sortField, sortDirection]);
 
   const confirmDelete = (id: string) => {
     setDeleteId(id);
@@ -227,7 +240,7 @@ export function DomainTable({
                       colSpan={6}
                       className="text-center py-8 text-muted-foreground"
                     >
-                      No domains found
+                      Nie znaleziono domen
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -301,24 +314,24 @@ export function DomainTable({
                                 onClick={() => onUpdate(domain, extendYear)}
                                 className="flex items-center justify-between w-full"
                               >
-                                <div className="flex items-center">
-                                  <Edit className="mr-2 h-4 w-4 text-muted-foreground" />
-                                  <span className="text-sm font-medium">
-                                    Przedłuż o
-                                  </span>
+                                <div className="flex items-center gap-2">
+                                  <RefreshCcw className="mr-2 h-4 w-4 " />
+                                  <span>Przedłuż o</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="flex items-center bg-muted rounded-full px-1 py-0.5 border border-border">
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setExtendYear((prev) =>
-                                          Math.max(1, prev - 1)
-                                        );
-                                      }}
+                                      disabled={extendYear === 1}
+                                      onClick={handleDecrease}
                                       className="h-6 w-6 flex items-center justify-center rounded-full bg-background hover:bg-accent transition-colors text-foreground"
                                     >
-                                      <span className="text-sm font-semibold">
+                                      <span
+                                        className={`text-sm font-semibold ${
+                                          extendYear === 1
+                                            ? "text-gray-300"
+                                            : ""
+                                        }`}
+                                      >
                                         -
                                       </span>
                                     </button>
@@ -326,20 +339,20 @@ export function DomainTable({
                                       {extendYear}
                                     </span>
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setExtendYear((prev) => prev + 1);
-                                      }}
+                                      disabled={extendYear >= 9}
+                                      onClick={handleIncrease}
                                       className="h-6 w-6 flex items-center justify-center rounded-full bg-background hover:bg-accent transition-colors text-foreground"
                                     >
-                                      <span className="text-sm font-semibold">
+                                      <span
+                                        className={`text-sm font-semibold ${
+                                          extendYear >= 9 ? "text-gray-300" : ""
+                                        }`}
+                                      >
                                         +
                                       </span>
                                     </button>
                                   </div>
-                                  <span className="text-sm text-muted-foreground">
-                                    {extendYear > 1 ? "lata" : "rok"}
-                                  </span>
+                                  {extendYear > 1 ? "lata" : "rok"}
                                 </div>
                               </DropdownMenuItem>
                               <DropdownMenuItem

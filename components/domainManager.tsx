@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
-import { DomainTable } from "./domain-table";
-import { DomainForm } from "./domain-form";
+import { DomainTable } from "./domainTable";
+import { DomainForm } from "./domainForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import type { Domain } from "@/types/domain";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/useToast";
 import { Card } from "@/components/ui/card";
 import { authService } from "@/services/auth-service";
 
@@ -51,7 +51,6 @@ const API_URL = process.env.SERVER_URL || "http://gfcsrvdr2:8001";
 
 export function DomainManager() {
   const [domains, setDomains] = useState<Domain[]>([]);
-  const [filteredDomains, setFilteredDomains] = useState<Domain[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -89,7 +88,7 @@ export function DomainManager() {
     );
   }, [domains]);
 
-  const fetchDomains = async () => {
+  const fetchDomains = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -129,32 +128,32 @@ export function DomainManager() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchDomains();
-  }, []);
+  }, [fetchDomains]);
 
-  const getDomainStatus = (
-    expireDate: string
-  ): "active" | "expiring-soon" | "expired" | "requested" => {
-    if (!expireDate) return "requested";
+  const getDomainStatus = useCallback(
+    (
+      expireDate: string
+    ): "active" | "expiring-soon" | "expired" | "requested" => {
+      if (!expireDate) return "requested";
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expiryDate = new Date(expireDate);
-    expiryDate.setHours(0, 0, 0, 0);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const expiryDate = new Date(expireDate);
+      expiryDate.setHours(0, 0, 0, 0);
 
-    const diffTime = expiryDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffTime = expiryDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) {
-      return "expired";
-    } else if (diffDays <= 30) {
-      return "expiring-soon";
-    }
-    return "active";
-  };
+      if (diffDays < 0) return "expired";
+      else if (diffDays <= 30) return "expiring-soon";
+      return "active";
+    },
+    []
+  );
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -164,7 +163,7 @@ export function DomainManager() {
     return count;
   }, [filters]);
 
-  useEffect(() => {
+  const filteredDomains = useMemo(() => {
     let filtered = domains;
 
     if (filters.status !== "all") {
@@ -195,153 +194,174 @@ export function DomainManager() {
       );
     }
 
-    setFilteredDomains(filtered);
-  }, [searchQuery, domains, filters]);
+    return filtered;
+  }, [domains, filters, searchQuery, getDomainStatus]);
 
-  const handleAddDomain = async (domain: Omit<Domain, "id">) => {
-    try {
-      const user = authService.getUser();
+  const handleAddDomain = useCallback(
+    async (domain: Omit<Domain, "id">) => {
+      try {
+        const user = authService.getUser();
 
-      const apiData = {
-        domain: domain.name,
-        renew: domain.expireDate,
-        company: domain.company,
-        registrar: domain.registrar,
-        requestedBy: user?.email,
-      };
+        const apiData = {
+          domain: domain.name,
+          renew: domain.expireDate,
+          company: domain.company,
+          registrar: domain.registrar,
+          requestedBy: user?.email,
+        };
 
-      const response = await axios.post(`${API_URL}/api/domains/`, apiData, {
-        headers: authService.getAuthHeader(),
-      });
-
-      const newDomain = {
-        id: response.data._id,
-        name: response.data.domain,
-        expireDate: response.data.renew,
-        company: response.data.company,
-        registrar: response.data.registrar,
-      };
-
-      setDomains([...domains, newDomain]);
-      setIsFormOpen(false);
-      setFormMode("add"); // Reset mode po sukcesie
-      toast({
-        title: "Sukces",
-        description: "Domena została dodana pomyślnie",
-      });
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        authService.logout();
-        return;
-      }
-      toast({
-        title: "Błąd",
-        description: "Nie udało się dodać domeny",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleUpdateDomain = async (updatedDomain: Domain) => {
-    try {
-      const apiData = {
-        domain: updatedDomain.name,
-        renew: updatedDomain.expireDate,
-        company: updatedDomain.company,
-        registrar: updatedDomain.registrar,
-      };
-
-      const response = await axios.put(
-        `${API_URL}/api/domains/${updatedDomain.id}`,
-        apiData,
-        {
+        const response = await axios.post(`${API_URL}/api/domains/`, apiData, {
           headers: authService.getAuthHeader(),
+        });
+
+        const newDomain = {
+          id: response.data._id,
+          name: response.data.domain,
+          expireDate: response.data.renew,
+          company: response.data.company,
+          registrar: response.data.registrar,
+        };
+
+        setDomains((prev) => [...prev, newDomain]);
+        setIsFormOpen(false);
+        setFormMode("add");
+        toast({
+          title: "Sukces",
+          description: "Domena została dodana pomyślnie",
+        });
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          authService.logout();
+          return;
         }
-      );
-
-      const updated = {
-        id: response.data._id,
-        name: response.data.domain,
-        expireDate: response.data.renew,
-        company: response.data.company,
-        registrar: response.data.registrar,
-      };
-
-      setDomains(
-        domains.map((domain) => (domain.id === updated.id ? updated : domain))
-      );
-      setEditingDomain(null);
-      setIsFormOpen(false);
-      setFormMode("add"); // Reset mode po sukcesie
-      toast({
-        title: "Sukces",
-        description: "Domena została zaktualizowana pomyślnie",
-      });
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        authService.logout();
-        return;
+        toast({
+          title: "Błąd",
+          description: "Nie udało się dodać domeny",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: "Błąd",
-        description: "Nie udało się zaktualizować domeny",
-        variant: "destructive",
-      });
-    }
-  };
+    },
+    [toast]
+  );
 
-  const handleDeleteDomain = async (id: string) => {
-    try {
-      await axios.delete(`${API_URL}/api/domains/${id}`, {
-        headers: authService.getAuthHeader(),
-      });
+  const handleUpdateDomain = useCallback(
+    async (updatedDomain: Domain, extendYear: number | null) => {
+      try {
+        let newExpireDate = updatedDomain.expireDate;
 
-      setDomains(domains.filter((domain) => domain.id !== id));
-      toast({
-        title: "Sukces",
-        description: "Domena została usunięta pomyślnie",
-      });
-    } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        authService.logout();
-        return;
+        if (extendYear) {
+          const currentDate = new Date(updatedDomain.expireDate);
+          currentDate.setFullYear(currentDate.getFullYear() + extendYear);
+
+          newExpireDate = currentDate.toISOString().split("T")[0];
+        }
+
+        const apiData = {
+          domain: updatedDomain.name,
+          renew: newExpireDate,
+          company: updatedDomain.company,
+          registrar: updatedDomain.registrar,
+        };
+
+        const response = await axios.put(
+          `${API_URL}/api/domains/${updatedDomain.id}`,
+          apiData,
+          {
+            headers: authService.getAuthHeader(),
+          }
+        );
+
+        const updated = {
+          id: response.data._id,
+          name: response.data.domain,
+          expireDate: response.data.renew,
+          company: response.data.company,
+          registrar: response.data.registrar,
+        };
+
+        setDomains((prev) =>
+          prev.map((domain) => (domain.id === updated.id ? updated : domain))
+        );
+        setEditingDomain(null);
+        setIsFormOpen(false);
+        setFormMode("add");
+        toast({
+          title: "Sukces",
+          description: "Domena została zaktualizowana pomyślnie",
+        });
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          authService.logout();
+          return;
+        }
+        toast({
+          title: "Błąd",
+          description: "Nie udało się zaktualizować domeny",
+          variant: "destructive",
+        });
       }
-      toast({
-        title: "Błąd",
-        description: "Nie udało się usunąć domeny",
-        variant: "destructive",
-      });
-    }
-  };
+    },
+    [toast]
+  );
 
-  const handleEditDomain = (domain: Domain) => {
+  const handleDeleteDomain = useCallback(
+    async (id: string) => {
+      try {
+        await axios.delete(`${API_URL}/api/domains/${id}`, {
+          headers: authService.getAuthHeader(),
+        });
+
+        setDomains((prev) => prev.filter((domain) => domain.id !== id));
+        toast({
+          title: "Sukces",
+          description: "Domena została usunięta pomyślnie",
+        });
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          authService.logout();
+          return;
+        }
+        toast({
+          title: "Błąd",
+          description: "Nie udało się usunąć domeny",
+          variant: "destructive",
+        });
+      }
+    },
+    [toast]
+  );
+
+  const handleEditDomain = useCallback((domain: Domain) => {
     setEditingDomain(domain);
-    setFormMode("add"); // Ustawiamy na "add", bo edycja nie wymaga "request"
+    setFormMode("add");
     setIsFormOpen(true);
-  };
+  }, []);
 
-  const handleFilterChange = (filterType: keyof Filters, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterType]: value,
-    }));
-  };
+  const handleFilterChange = useCallback(
+    (filterType: keyof Filters, value: string) => {
+      setFilters((prev) => ({
+        ...prev,
+        [filterType]: value,
+      }));
+    },
+    []
+  );
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setFilters({
       status: "all",
       company: "all",
       registrar: "all",
     });
-  };
+  }, []);
 
-  const handleModeReset = () => {
-    setFormMode("add"); // Funkcja resetująca mode
-  };
+  const handleModeReset = useCallback(() => {
+    setFormMode("add");
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     authService.logout();
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -381,7 +401,7 @@ export function DomainManager() {
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {user && (
               <div className="hidden sm:flex items-center mr-2 text-sm text-muted-foreground">
                 Zalogowany jako:{" "}
@@ -500,7 +520,7 @@ export function DomainManager() {
               }}
             >
               <CircleDollarSign className="mr-2 h-4 w-4" />
-              Zleć zakupy domeny
+              Zleć zakup domeny
             </Button>
 
             <Button
@@ -600,7 +620,7 @@ export function DomainManager() {
           }}
           initialData={editingDomain}
           mode={formMode}
-          onModeReset={handleModeReset} // Przekazanie funkcji resetującej
+          onModeReset={handleModeReset}
         />
       )}
     </div>

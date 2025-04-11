@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription, // Dodajemy import
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -26,7 +27,7 @@ interface DomainFormProps {
   onCancel: () => void;
   initialData?: Domain | null;
   mode?: "add" | "request";
-  onModeReset?: () => void; // Nowa funkcja do resetowania mode
+  onModeReset?: () => void;
 }
 
 export function DomainForm({
@@ -34,7 +35,7 @@ export function DomainForm({
   onCancel,
   initialData,
   mode = "add",
-  onModeReset, // Nowy prop
+  onModeReset,
 }: DomainFormProps) {
   const isRequesting = mode === "request";
 
@@ -104,7 +105,7 @@ export function DomainForm({
       setIsSubmitting(true);
       try {
         await onSubmit(formData);
-        if (onModeReset) onModeReset(); // Reset mode po sukcesie
+        if (onModeReset) onModeReset();
       } catch (error) {
         console.error("Error submitting form:", error);
       } finally {
@@ -115,7 +116,7 @@ export function DomainForm({
 
   const handleCancel = () => {
     onCancel();
-    if (onModeReset) onModeReset(); // Reset mode po anulowaniu
+    if (onModeReset) onModeReset();
   };
 
   return (
@@ -126,9 +127,16 @@ export function DomainForm({
             {initialData
               ? "Edytuj domenę"
               : isRequesting
-              ? "Zleć zakupy domeny"
+              ? "Zleć zakup domeny"
               : "Dodaj nową domenę"}
           </DialogTitle>
+          <DialogDescription>
+            {initialData
+              ? "Edytuj dane istniejącej domeny."
+              : isRequesting
+              ? "Zleć zakup nowej domeny, wypełniając wymagane pola."
+              : "Dodaj nową domenę do systemu, wypełniając wymagane pola."}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <p className="text-sm text-muted-foreground">
@@ -155,26 +163,28 @@ export function DomainForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="expireDate" className="flex items-center">
-              Data wygaśnięcia{" "}
-              {!isRequesting && (
-                <span className="text-destructive ml-1">*</span>
+          {!isRequesting && (
+            <div className="space-y-2">
+              <Label htmlFor="expireDate" className="flex items-center">
+                Data wygaśnięcia{" "}
+                {!isRequesting && (
+                  <span className="text-destructive ml-1">*</span>
+                )}
+              </Label>
+              <Input
+                id="expireDate"
+                name="expireDate"
+                type="date"
+                value={formData.expireDate}
+                onChange={handleChange}
+                className={errors.expireDate ? "border-destructive" : ""}
+                disabled={isSubmitting || isRequesting}
+              />
+              {errors.expireDate && (
+                <p className="text-sm text-destructive">{errors.expireDate}</p>
               )}
-            </Label>
-            <Input
-              id="expireDate"
-              name="expireDate"
-              type="date"
-              value={formData.expireDate}
-              onChange={handleChange}
-              className={errors.expireDate ? "border-destructive" : ""}
-              disabled={isSubmitting || isRequesting}
-            />
-            {errors.expireDate && (
-              <p className="text-sm text-destructive">{errors.expireDate}</p>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="company" className="flex items-center">
@@ -205,7 +215,7 @@ export function DomainForm({
 
           <div className="space-y-2">
             <Label htmlFor="registrar" className="flex items-center">
-              Rejestrator <span className="text-destructive ml-1">*</span>
+              Rejestrator
             </Label>
             <Input
               id="registrar"
