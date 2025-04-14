@@ -47,7 +47,7 @@ interface Filters {
   registrar: string;
 }
 
-const API_URL = process.env.SERVER_URL || "http://gfcsrvdr2:8001";
+const API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
 
 export function DomainManager() {
   const [domains, setDomains] = useState<Domain[]>([]);
@@ -224,15 +224,25 @@ export function DomainManager() {
 
         setDomains((prev) => [...prev, newDomain]);
         setIsFormOpen(false);
-        setFormMode("add");
+        setFormMode("request");
         toast({
           title: "Sukces",
           description: "Domena została dodana pomyślnie",
         });
       } catch (err) {
-        if (axios.isAxiosError(err) && err.response?.status === 401) {
-          authService.logout();
-          return;
+        if (axios.isAxiosError(err)) {
+          if (err.response?.status === 409) {
+            toast({
+              title: "Błąd",
+              description: "Domena już istnieje w systemie",
+              variant: "destructive",
+            });
+            return;
+          }
+          if (err.response?.status === 401) {
+            authService.logout();
+            return;
+          }
         }
         toast({
           title: "Błąd",

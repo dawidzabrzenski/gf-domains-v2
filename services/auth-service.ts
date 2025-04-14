@@ -16,7 +16,7 @@ export interface AuthResponse {
 
 const TOKEN_KEY = "domain_manager_token";
 const USER_KEY = "domain_manager_user";
-const API_URL = process.env.SERVER_URL || "http://gfcsrvdr2:8001";
+const API_URL = process.env.NEXT_PUBLIC_SERVER_URL || "http://gfcsrvdr2:8001";
 
 export const authService = {
   async login(credentials: LoginCredentials): Promise<boolean> {

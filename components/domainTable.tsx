@@ -48,7 +48,13 @@ interface DomainTableProps {
   onDelete: (id: string) => void;
 }
 
-type SortField = "name" | "expireDate" | "company" | "registrar" | "status";
+type SortField =
+  | "id"
+  | "name"
+  | "expireDate"
+  | "company"
+  | "registrar"
+  | "status";
 type SortDirection = "asc" | "desc";
 
 export function DomainTable({
@@ -137,6 +143,12 @@ export function DomainTable({
         const bStatus = getExpiryStatus(b.expireDate).sortValue;
 
         return sortDirection === "asc" ? aStatus - bStatus : bStatus - aStatus;
+      } else if (sortField === "id") {
+        const aId = String(a.id);
+        const bId = String(b.id);
+        return sortDirection === "asc"
+          ? aId.localeCompare(bId)
+          : bId.localeCompare(aId);
       } else {
         const aValue = a[sortField] || "";
         const bValue = b[sortField] || "";
@@ -152,6 +164,17 @@ export function DomainTable({
       }
     });
   }, [domains, sortField, sortDirection]);
+
+  const domainIdMap = useMemo(() => {
+    const sortedById = [...domains].sort((a, b) =>
+      String(a.id).localeCompare(String(b.id))
+    );
+    const idMap = new Map<string, number>();
+    sortedById.forEach((domain, index) => {
+      idMap.set(domain.id, index + 1);
+    });
+    return idMap;
+  }, [domains]);
 
   const confirmDelete = (id: string) => {
     setDeleteId(id);
@@ -174,12 +197,25 @@ export function DomainTable({
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-medium">Spis domen</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Ilość domen: {domains.length}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px] ">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("id")}
+                      className="flex items-center gap-1 font-semibold"
+                    >
+                      ID
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </TableHead>
                   <TableHead className="w-[200px]">
                     <Button
                       variant="ghost"
@@ -237,14 +273,14 @@ export function DomainTable({
                 {sortedDomains.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-center py-8 text-muted-foreground"
                     >
                       Nie znaleziono domen
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedDomains.map((domain) => {
+                  sortedDomains.map((domain, index) => {
                     const { status, className } = getExpiryStatus(
                       domain.expireDate
                     );
@@ -254,6 +290,9 @@ export function DomainTable({
 
                     return (
                       <TableRow key={domain.id} className={className}>
+                        <TableCell className="font-medium">
+                          {domainIdMap.get(domain.id)}
+                        </TableCell>
                         <TableCell className="font-medium">
                           {domain.name}
                         </TableCell>
@@ -272,7 +311,9 @@ export function DomainTable({
                               className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 gap-1"
                             >
                               <Clock className="h-3 w-3" />
-                              {daysUntilExpiry} dni
+                              {daysUntilExpiry === 0
+                                ? "Dzisiaj"
+                                : `${daysUntilExpiry} dni`}
                             </Badge>
                           ) : status === "requested" ? (
                             <Badge

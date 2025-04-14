@@ -105,7 +105,6 @@ export function DomainForm({
       setIsSubmitting(true);
       try {
         await onSubmit(formData);
-        if (onModeReset) onModeReset();
       } catch (error) {
         console.error("Error submitting form:", error);
       } finally {
@@ -213,23 +212,25 @@ export function DomainForm({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="registrar" className="flex items-center">
-              Rejestrator
-            </Label>
-            <Input
-              id="registrar"
-              name="registrar"
-              value={formData.registrar}
-              onChange={handleChange}
-              placeholder="np. Cyberfolks"
-              className={errors.registrar ? "border-destructive" : ""}
-              disabled={isSubmitting}
-            />
-            {errors.registrar && (
-              <p className="text-sm text-destructive">{errors.registrar}</p>
-            )}
-          </div>
+          {!isRequesting && (
+            <div className="space-y-2">
+              <Label htmlFor="registrar" className="flex items-center">
+                Rejestrator
+              </Label>
+              <Input
+                id="registrar"
+                name="registrar"
+                value={formData.registrar}
+                onChange={handleChange}
+                placeholder="np. Cyberfolks"
+                className={errors.registrar ? "border-destructive" : ""}
+                disabled={isSubmitting}
+              />
+              {errors.registrar && (
+                <p className="text-sm text-destructive">{errors.registrar}</p>
+              )}
+            </div>
+          )}
 
           <DialogFooter className="pt-4">
             <Button

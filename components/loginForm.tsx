@@ -69,13 +69,15 @@ export function LoginForm() {
       try {
         const success = await authService.login(formData);
 
+        console.log(success);
+
         if (success) {
           router.push("/");
         } else {
           setLoginError("Invalid email or password");
         }
       } catch (error) {
-        setLoginError("An error occurred during login. Please try again.");
+        setLoginError("test" + error);
         console.error("Login error:", error);
       } finally {
         setIsLoading(false);
