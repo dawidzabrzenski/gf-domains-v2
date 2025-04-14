@@ -27,6 +27,9 @@ import {
   AlertTriangle,
   Clock,
   CircleDollarSign,
+  Archive,
+  XCircle,
+  Undo,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -104,43 +107,59 @@ export function DomainTable({
     return diffDays;
   };
 
-  const getExpiryStatus = (dateString: string) => {
-    if (!dateString) {
+  const getExpiryStatus = (domain: Domain) => {
+    if (domain.archived) {
       return {
-        status: "requested",
-        className: "bg-blue-100 dark:bg-blue-900/30",
+        status: "archived",
+        className: "bg-gray-100 dark:bg-gray-900/30",
         sortValue: 0,
       };
     }
 
-    const daysUntilExpiry = getDaysUntilExpiry(dateString);
+    if (domain.resignation) {
+      return {
+        status: "resigned",
+        className: "bg-purple-100 dark:bg-purple-900/30",
+        sortValue: 1,
+      };
+    }
+
+    if (!domain.expireDate) {
+      return {
+        status: "requested",
+        className: "bg-blue-100 dark:bg-blue-900/30",
+        sortValue: 2,
+      };
+    }
+
+    const daysUntilExpiry = getDaysUntilExpiry(domain.expireDate);
 
     if (daysUntilExpiry < 0) {
       return {
         status: "expired",
         className: "bg-red-100 dark:bg-red-900/30",
-        sortValue: 3,
+        sortValue: 5,
       };
     } else if (daysUntilExpiry <= 30) {
       return {
         status: "expiring-soon",
         className: "bg-amber-100 dark:bg-amber-900/30",
-        sortValue: 2,
+        sortValue: 4,
       };
     }
 
     return {
       status: "active",
       className: "",
-      sortValue: 1,
+      sortValue: 3,
     };
   };
 
   const sortedDomains = useMemo(() => {
     return [...domains].sort((a, b) => {
       if (sortField === "status") {
-        const aStatus = getExpiryStatus(a.expireDate).sortValue;
-        const bStatus = getExpiryStatus(b.expireDate).sortValue;
+        const aStatus = getExpiryStatus(a).sortValue;
+        const bStatus = getExpiryStatus(b).sortValue;
 
         return sortDirection === "asc" ? aStatus - bStatus : bStatus - aStatus;
       } else if (sortField === "id") {
@@ -281,12 +300,10 @@ export function DomainTable({
                   </TableRow>
                 ) : (
                   sortedDomains.map((domain, index) => {
-                    const { status, className } = getExpiryStatus(
-                      domain.expireDate
-                    );
-                    const daysUntilExpiry = getDaysUntilExpiry(
-                      domain.expireDate
-                    );
+                    const { status, className } = getExpiryStatus(domain);
+                    const daysUntilExpiry = domain.expireDate
+                      ? getDaysUntilExpiry(domain.expireDate)
+                      : null;
 
                     return (
                       <TableRow key={domain.id} className={className}>
@@ -300,7 +317,23 @@ export function DomainTable({
                         <TableCell>{domain.company}</TableCell>
                         <TableCell>{domain.registrar || "Nieznany"}</TableCell>
                         <TableCell>
-                          {status === "expired" ? (
+                          {status === "archived" ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-gray-200 text-gray-800 dark:bg-gray-900 dark:text-gray-100 gap-1"
+                            >
+                              <Archive className="h-3 w-3" />
+                              Zarchiwizowana
+                            </Badge>
+                          ) : status === "resigned" ? (
+                            <Badge
+                              variant="outline"
+                              className="bg-purple-200 text-purple-800 dark:bg-purple-900 dark:text-purple-100 gap-1"
+                            >
+                              <XCircle className="h-3 w-3" />
+                              Rezygnacja
+                            </Badge>
+                          ) : status === "expired" ? (
                             <Badge variant="destructive" className="gap-1">
                               <AlertTriangle className="h-3 w-3" />
                               Wygasła
@@ -311,9 +344,7 @@ export function DomainTable({
                               className="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 gap-1"
                             >
                               <Clock className="h-3 w-3" />
-                              {daysUntilExpiry === 0
-                                ? "Dzisiaj"
-                                : `${daysUntilExpiry} dni`}
+                              {daysUntilExpiry} dni
                             </Badge>
                           ) : status === "requested" ? (
                             <Badge
@@ -350,7 +381,9 @@ export function DomainTable({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={
-                                  !hasDomainPermission || !domain.expireDate
+                                  !hasDomainPermission ||
+                                  !domain.expireDate ||
+                                  !domain.archived
                                 }
                                 onClick={() => onUpdate(domain, extendYear)}
                                 className="flex items-center justify-between w-full"
@@ -395,6 +428,22 @@ export function DomainTable({
                                   </div>
                                   {extendYear > 1 ? "lata" : "rok"}
                                 </div>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                disabled={!hasDomainPermission}
+                                onClick={() =>
+                                  onUpdate(
+                                    { ...domain, archived: !domain.archived },
+                                    0
+                                  )
+                                }
+                              >
+                                {domain.archived ? (
+                                  <Undo className="mr-2 h-4 w-4" />
+                                ) : (
+                                  <Archive className="mr-2 h-4 w-4" />
+                                )}
+                                {domain.archived ? "Przywróć" : "Zarchiwizuj"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 disabled={!hasDomainPermission}

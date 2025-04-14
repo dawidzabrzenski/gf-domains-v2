@@ -4,4 +4,6 @@ export interface Domain {
   expireDate: string;
   company: string;
   registrar: string;
+  resignation: boolean;
+  archived: boolean;
 }

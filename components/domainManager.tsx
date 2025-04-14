@@ -39,7 +39,9 @@ type StatusFilter =
   | "active"
   | "expiring-soon"
   | "expired"
-  | "requested";
+  | "requested"
+  | "resigned"
+  | "archived";
 
 interface Filters {
   status: StatusFilter;
@@ -58,7 +60,7 @@ export function DomainManager() {
   const [error, setError] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<"add" | "request">("add");
   const [filters, setFilters] = useState<Filters>({
-    status: "all",
+    status: "all", // Domyślny filtr statusu
     company: "all",
     registrar: "all",
   });
@@ -109,7 +111,9 @@ export function DomainManager() {
           name: domain.domain || "",
           expireDate: renewDate,
           company: domain.company || "Nieznana",
-          registrar: domain.registrar || "—",
+          registrar: domain.registrar || "Nieznany",
+          resignation: domain.resignation || false,
+          archived: domain.archived || false,
         };
       });
 
@@ -134,26 +138,24 @@ export function DomainManager() {
     fetchDomains();
   }, [fetchDomains]);
 
-  const getDomainStatus = useCallback(
-    (
-      expireDate: string
-    ): "active" | "expiring-soon" | "expired" | "requested" => {
-      if (!expireDate) return "requested";
+  const getDomainStatus = useCallback((domain: Domain): StatusFilter => {
+    if (domain.archived) return "archived";
+    if (domain.resignation) return "resigned";
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const expiryDate = new Date(expireDate);
-      expiryDate.setHours(0, 0, 0, 0);
+    if (!domain.expireDate) return "requested";
 
-      const diffTime = expiryDate.getTime() - today.getTime();
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiryDate = new Date(domain.expireDate);
+    expiryDate.setHours(0, 0, 0, 0);
 
-      if (diffDays < 0) return "expired";
-      else if (diffDays <= 30) return "expiring-soon";
-      return "active";
-    },
-    []
-  );
+    const diffTime = expiryDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "expired";
+    else if (diffDays <= 30) return "expiring-soon";
+    return "active";
+  }, []);
 
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -166,9 +168,13 @@ export function DomainManager() {
   const filteredDomains = useMemo(() => {
     let filtered = domains;
 
+    if (filters.status !== "archived") {
+      filtered = filtered.filter((domain) => !domain.archived);
+    }
+
     if (filters.status !== "all") {
       filtered = filtered.filter(
-        (domain) => getDomainStatus(domain.expireDate) === filters.status
+        (domain) => getDomainStatus(domain) === filters.status
       );
     }
 
@@ -208,6 +214,8 @@ export function DomainManager() {
           company: domain.company,
           registrar: domain.registrar,
           requestedBy: user?.email,
+          resignation: domain.resignation || false,
+          archived: domain.archived || false,
         };
 
         const response = await axios.post(`${API_URL}/api/domains/`, apiData, {
@@ -220,6 +228,8 @@ export function DomainManager() {
           expireDate: response.data.renew,
           company: response.data.company,
           registrar: response.data.registrar,
+          resignation: response.data.resignation,
+          archived: response.data.archived,
         };
 
         setDomains((prev) => [...prev, newDomain]);
@@ -262,7 +272,6 @@ export function DomainManager() {
         if (extendYear) {
           const currentDate = new Date(updatedDomain.expireDate);
           currentDate.setFullYear(currentDate.getFullYear() + extendYear);
-
           newExpireDate = currentDate.toISOString().split("T")[0];
         }
 
@@ -271,6 +280,8 @@ export function DomainManager() {
           renew: newExpireDate,
           company: updatedDomain.company,
           registrar: updatedDomain.registrar,
+          resignation: updatedDomain.resignation,
+          archived: updatedDomain.archived,
         };
 
         const response = await axios.put(
@@ -287,6 +298,8 @@ export function DomainManager() {
           expireDate: response.data.renew,
           company: response.data.company,
           registrar: response.data.registrar,
+          resignation: response.data.resignation,
+          archived: response.data.archived,
         };
 
         setDomains((prev) =>
@@ -469,6 +482,8 @@ export function DomainManager() {
                           Niedługo wygasa
                         </SelectItem>
                         <SelectItem value="expired">Wygasła</SelectItem>
+                        <SelectItem value="resigned">Rezygnacja</SelectItem>
+                        <SelectItem value="archived">Zarchiwizowana</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -498,7 +513,7 @@ export function DomainManager() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Rejestrator</label>
                     <Select
-                      value={filters.registrar}
+                      value={filters.company}
                       onValueChange={(value) =>
                         handleFilterChange("registrar", value)
                       }
@@ -567,7 +582,11 @@ export function DomainManager() {
                   ? "Niedługo wygasa"
                   : filters.status === "expired"
                   ? "Wygasła"
-                  : "Zlecenie"}
+                  : filters.status === "requested"
+                  ? "Zlecenie"
+                  : filters.status === "resigned"
+                  ? "Rezygnacja"
+                  : "Zarchiwizowana"}
                 <Button
                   variant="ghost"
                   size="icon"
