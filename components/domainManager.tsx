@@ -60,7 +60,7 @@ export function DomainManager() {
   const [error, setError] = useState<string | null>(null);
   const [formMode, setFormMode] = useState<"add" | "request">("add");
   const [filters, setFilters] = useState<Filters>({
-    status: "all", // Domyślny filtr statusu
+    status: "all",
     company: "all",
     registrar: "all",
   });

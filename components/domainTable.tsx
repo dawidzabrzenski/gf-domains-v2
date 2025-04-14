@@ -383,7 +383,7 @@ export function DomainTable({
                                 disabled={
                                   !hasDomainPermission ||
                                   !domain.expireDate ||
-                                  !domain.archived
+                                  domain.archived
                                 }
                                 onClick={() => onUpdate(domain, extendYear)}
                                 className="flex items-center justify-between w-full"

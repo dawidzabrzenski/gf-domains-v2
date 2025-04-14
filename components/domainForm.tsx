@@ -23,7 +23,7 @@ import {
 import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
 import { Check } from "lucide-react";
 import type { Domain } from "@/types/domain";
-import { cn } from "@/lib/utils"; // Zakładam, że masz funkcję cn z Shadcn dla klas warunkowych
+import { cn } from "@/lib/utils";
 
 interface DomainFormProps {
   onSubmit: (domain: Domain | Omit<Domain, "id">) => void | Promise<void>;
@@ -81,9 +81,7 @@ export function DomainForm({
   const handleCheckboxChange = (name: string, checked: boolean) => {
     const updatedFormData = { ...formData, [name]: checked };
 
-    // Jeśli archived jest zaznaczane, resetujemy expireDate i resignation
     if (name === "archived" && checked) {
-      updatedFormData.expireDate = "";
       updatedFormData.resignation = false;
     }
 
