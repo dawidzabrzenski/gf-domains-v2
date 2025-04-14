@@ -109,7 +109,7 @@ export function DomainManager() {
           name: domain.domain || "",
           expireDate: renewDate,
           company: domain.company || "Nieznana",
-          registrar: domain.registrar || "Nieznany",
+          registrar: domain.registrar || "—",
         };
       });
 
